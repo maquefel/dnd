@@ -4,11 +4,7 @@
  * it under the terms of version 2 of the GNU General Public License, 
  * as published by the Free Software Foundation. 
  */ 
-
-/* Compile with -DHAVE_SPLICE_SYSCALL if you _know_ your kernel 
- * has splice/vmsplice support. 
- */ 
-
+#define _GNU_SOURCE
 #ifndef _LARGEFILE64_SOURCE 
 #error need -D_LARGEFILE64_SOURCE 
 #endif 
@@ -677,7 +673,6 @@ void setup_splice(struct options *opts)
         opts->buf_size = ALIGN(opts->buf_size, pg_sz); 
 } 
 
-#ifdef HAVE_SPLICE_SYSCALL 
 uint64_t splice_send(const struct options *opts, int fd, int sd) 
 { 
         union pipe_fd *p = opts->private; 
@@ -714,9 +709,6 @@ again:
         } 
         goto again; 
 } 
-#else 
-move_function splice_send = NULL; 
-#endif 
 
 /* vmsplice moves pages backing a user address range to a pipe. 
 However, 
@@ -763,7 +755,6 @@ void setup_vmsplice(struct options *opts)
                                   (unsigned long)pg_sz); 
 } 
 
-#ifdef HAVE_SPLICE_SYSCALL 
 uint64_t vmsplice_recv(const struct options *opts, int sd, int fd) 
 { 
         union pipe_fd *p = opts->private; 
@@ -813,10 +804,7 @@ again2:
                 } 
         } 
         goto again; 
-} 
-#else 
-move_function vmsplice_recv = NULL; 
-#endif 
+}
 
 uint64_t move(const struct options *opts, int fd, int sd, 
               move_function do_send, move_function do_recv) 
