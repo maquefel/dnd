@@ -31,81 +31,71 @@
 
 #define ALIGN(value,size) (((value) + (size) - 1) & ~((size) - 1)) 
 
-/* Once glibc implements splice(), SYS_splice will be defined in 
- * system headers.  Until then we need to use our own stuff to access 
- * these syscalls in new kernels. 
- */ 
-#ifdef HAVE_SPLICE_SYSCALL 
-#ifndef SYS_splice 
-#include <splice.h> 
-#endif 
-#endif 
-
 #define OPTION_FLAGS "b:c:hl:m:op:tw:" 
 
-const char usage[] = "\n\ 
-dnd [OPTION] ... <file> \n\ 
-\n\ 
-        Performs a timed disk-network-disk data transfer, using TCP/IP \n\ 
-        as the network protocol. \n\ 
-\n\ 
-        When dnd is invoked with \"-c <remote-host>\", it connects to \n\ 
-        <remote-host> and sends the contents of <file>.  Otherwise, it \n\ 
-        accepts a connection and writes the data received over the \n\ 
-        connection into <file>.  On the sender side, timing starts just \n\ 
-        before the first byte is read from the file, and stops just after \n\ 
-        the last byte of data is sent.  On the receiver side, timing starts \n\ 
-        just before the first byte is received, and stops just after the \n\ 
-        last byte is synced to disk. \n\ 
-\n\ 
-        -b <bsz> \n\ 
-                Use a buffer of size <bsz> bytes to move data.  The default \n\ 
-                value is 65536 bytes. The value for <bsz> may be suffixed \n\ 
-                with one of the following multipliers: \n\ 
-                  k	*1000 \n\ 
-                  M	*1000*1000 \n\ 
-                  G	*1000*1000*1000 \n\ 
-                  Ki	*1024 \n\ 
-                  Mi	*1024*1024 \n\ 
-                  Gi	*1024*1024*1024 \n\ 
-        -c <remote-host> \n\ 
-                Connect to <rhost> to send the data in <file>. \n\ 
-                If not specified, listen for connections and receive data \n\ 
-                into <file>. \n\ 
-        -h \n\ 
-                Print this message. \n\ 
-        -l <sz> \n\ 
-                Limit the transfer to at most <sz> bytes.  The value for \n\ 
-                  <sz> may be suffixed as for the '-b' option.  Valid only \n\ 
-                  if the '-c' option is also present.\n\ 
-        -m <method> \n\ 
-                Select one of the following methods: \n\ 
-                mmap	Use mmap system call on the file descriptor and \n\ 
-                          read/write system calls on the socket descriptor. \n\ 
-                rw	Use read/write system calls on both the file \n\ 
-                          descriptor and the socket descriptor. (Default) \n\ 
-                sendfile \n\ 
-                        Use the sendfile system call to send data. \n\ 
-                splice	Use the splice system call. Currently only supports \n\ 
-                          a splice from the file to the socket. \n\ 
-                vmsplice \n\ 
-                        Use the read system call to receive data from the \n\ 
-                          socket into memory, and the vmsplice system call \n\ 
-                          to move the data into the file. \n\ 
-        -o \n\ 
-                If writing to <file> and it already exists, overwrite its \n\ 
-                data and truncate it to the total number of bytes received.\n\ 
-        -p <port> \n\ 
-                Either listen on <port>, or attempt to connect to \n\ 
-                <remote_host>:<port>.  The default port is 13931. \n\ 
-        -t \n\ 
-                If writing to <file> and it already exists, truncate it \n\ 
-                to zero length before writing to it.\n\ 
-        -w <wsz> \n\ 
-                Use a TCP window size of <wsz> bytes, which may be suffixed \n\ 
-                as for <bsz> above.  The default value is 131072 bytes.\n\ 
-\n\ 
-"; 
+const char usage[] = 
+                    "\n"\
+                    "dnd [OPTION] ... <file> \n" \
+                    "\n" \
+                    "   Performs a timed disk-network-disk data transfer, using TCP/IP\n" \
+                    "   as the network protocol. \n" \
+                    "\n" \
+                    "   When dnd is invoked with \"-c <remote-host>\", it connects to \n" \
+                    "   <remote-host> and sends the contents of <file>.  Otherwise, it \n" \
+                    "   accepts a connection and writes the data received over the \n" \
+                    "   connection into <file>.  On the sender side, timing starts just \n" \
+                    "   before the first byte is read from the file, and stops just after \n" \
+                    "   the last byte of data is sent.  On the receiver side, timing starts \n" \
+                    "   just before the first byte is received, and stops just after the \n" \
+                    "   last byte is synced to disk. \n" \
+                    "\n" \
+                    "   -b <bsz> \n" \
+                    "       Use a buffer of size <bsz> bytes to move data.  The default \n" \
+                    "       value is 65536 bytes. The value for <bsz> may be suffixed \n" \
+                    "       with one of the following multipliers: \n" \
+                    "           k   *1000 \n" \
+                    "           M   *1000*1000 \n" \
+                    "           G   *1000*1000*1000 \n" \
+                    "           Ki  *1024 \n" \
+                    "           Mi  *1024*1024 \n" \
+                    "           Gi  *1024*1024*1024 \n" \
+                    "   -c <remote-host> \n" \
+                    "       Connect to <rhost> to send the data in <file>. \n" \
+                    "       If not specified, listen for connections and receive data \n" \
+                    "       into <file>. \n" \
+                    "   -h \n" \
+                    "       Print this message. \n" \
+                    "   -l <sz> \n" \
+                    "       Limit the transfer to at most <sz> bytes.  The value for \n" \
+                    "   <sz> may be suffixed as for the '-b' option.  Valid only \n" \
+                    "       if the '-c' option is also present.\n" \
+                    "   -m <method> \n" \
+                    "       Select one of the following methods: \n" \
+                    "       mmap    Use mmap system call on the file descriptor and \n" \
+                    "               read/write system calls on the socket descriptor. \n" \
+                    "       rw      Use read/write system calls on both the file \n" \
+                    "               descriptor and the socket descriptor. (Default) \n" \
+                    "       sendfile \n" \
+                    "               Use the sendfile system call to send data. \n" \
+                    "       splice  Use the splice system call. Currently only supports \n" \
+                    "               a splice from the file to the socket. \n" \
+                    "       vmsplice \n" \
+                    "               Use the read system call to receive data from the \n" \
+                    "               socket into memory, and the vmsplice system call \n" \
+                    "               to move the data into the file. \n" \
+                    "   -o \n" \
+                    "       If writing to <file> and it already exists, overwrite its \n" \
+                    "       data and truncate it to the total number of bytes received.\n" \
+                    "   -p <port> \n" \
+                    "       Either listen on <port>, or attempt to connect to \n" \
+                    "       <remote_host>:<port>.  The default port is 13931. \n" \
+                    "   -t \n" \
+                    "       If writing to <file> and it already exists, truncate it \n" \
+                    "       to zero length before writing to it.\n" \
+                    "   -w <wsz> \n" \
+                    "       Use a TCP window size of <wsz> bytes, which may be suffixed \n" \
+                    "       as for <bsz> above.  The default value is 131072 bytes.\n" \
+                    "\n"; 
 
 
 enum method {MMAP, RW, SENDFILE, SPLICE, VMSPLICE}; 
